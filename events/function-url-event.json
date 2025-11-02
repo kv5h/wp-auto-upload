@@ -1,0 +1,29 @@
+{
+  "version": "2.0",
+  "routeKey": "$default",
+  "rawPath": "/",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "accountId": "anonymous",
+    "apiId": "local",
+    "domainName": "localhost",
+    "domainPrefix": "localhost",
+    "http": {
+      "method": "POST",
+      "path": "/",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "127.0.0.1",
+      "userAgent": "curl/8.0.1"
+    },
+    "requestId": "local-id",
+    "routeKey": "$default",
+    "stage": "$default",
+    "time": "01/Jan/1970:00:00:00 +0000",
+    "timeEpoch": 0
+  },
+  "body": "{\"update_id\":999999001,\"message\":{\"message_id\":42,\"date\":1690000000,\"chat\":{\"id\":-1001234567890,\"title\":\"Example Telegram Group\",\"type\":\"supergroup\"},\"from\":{\"id\":123456789,\"is_bot\":false,\"first_name\":\"Alice\",\"last_name\":\"Example\",\"username\":\"alice_example\",\"language_code\":\"en\"},\"text\":\"Hello from Telegram!\"}}",
+  "isBase64Encoded": false
+}

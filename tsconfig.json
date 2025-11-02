@@ -26,16 +26,12 @@
     // "moduleDetection": "auto",                        /* Control what method is used to detect module-format JS files. */
 
     /* Modules */
-    "module": "commonjs",                                /* Specify what module code is generated. */
+    "module": "Node16",                                  /* Specify what module code is generated. */
     // "rootDir": "./",                                  /* Specify the root folder within your source files. */
     "moduleResolution": "node16",                        /* Match the AWS Lambda Node 18 runtime resolver. */
     "baseUrl": "./",                                     /* Specify the base directory to resolve non-relative module names. */
     "outDir": "./dist",                                  /* Emit compiled files into dist. */
     "rootDir": "./src",                                  /* Source files live under src. */
-    "esModuleInterop": true,                             /* Enable default import interoperability. */
-    "forceConsistentCasingInFileNames": true,            /* Enforce import casing consistency. */
-    "strict": true,                                      /* Enable strict type checking. */
-    "skipLibCheck": true,                                /* Skip type checking of declaration files for faster builds. */
     // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
