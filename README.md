@@ -92,16 +92,3 @@ This project includes a `Dockerfile` based on the official AWS Lambda Node.js im
 
 - Webhooks without text or captioned content are ignored with a `200` response so Telegram stops retrying.
 - OpenAI and WordPress failures are logged and return `500` to make the issue visible in CloudWatch.
-
-## Appendix
-
-https://wordpress.dyno.design/rest-api-post-creation/
-
----
-
-> そもそも、Telegram Webhook から直接 AWS Lambda を起動することは可能ですか?
-
-可能です。Telegram Bot API の Webhook は「有効な TLS 証明書付きの https エンドポイント」へ POST を送るだけなので、AWS 側でその条件を満たせば Lambda を直接呼び出せます。
-
-対象 Lambda で Function URL を有効化し、認証方式を NONE にします（AWS 側で自動的に証明書付きの https URL が払い出されます）。 Telegram の setWebhook でこの URL を登録すると、Webhook 呼び出しが直接 Lambda に届きます。セキュリティ面では、Telegram が送る X-Telegram-Bot-Api-Secret-Token を利用する、IP
-レンジのチェックを行う、など追加対策を検討してください。
