@@ -2,7 +2,7 @@
 
 AWS Lambda function that polls Telegram groups on a schedule, rewrites prompts with DeepSeek, and publishes the generated article to WordPress (then deletes the original messages).
 
-## Architecture
+## Workflow
 
 ### User's post based
 
