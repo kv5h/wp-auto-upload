@@ -15,7 +15,7 @@ AWS Lambda function that polls Telegram groups on a schedule, rewrites prompts w
          1. Create a blog content via WordPress API
          1. Delete original post
 
-### Cron based
+### [TODO] Cron based
 
 1. Run a cloud server by schedule
 1. @ NodeJS application
@@ -93,23 +93,10 @@ This project includes a `Dockerfile` based on the official AWS Lambda Node.js im
    - Temporarily enable [Bot API mode with privacy disabled](https://core.telegram.org/bots/features#privacy-mode) or use a helper bot (e.g. [@RawDataBot](https://t.me/RawDataBot)) to read the `chat.id` value when a message is posted in the group.
    - The ID is usually negative for supergroups (e.g. `-1001234567890`). Set this value as `TELEGRAM_CHAT_ID`.
 4. **Reset webhook (optional but recommended)**
-
    - Because this project uses polling via `getUpdates`, ensure no webhook is configured by calling:
-
      ```bash
      curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url="
      ```
-
-5. **Schedule Lambda**
-   - After populating the environment variables, deploy the Lambda and wire it to an EventBridge rule. Whenever the function runs it will poll the group, generate WordPress posts, and delete the processed Telegram messages.
-
-## Deployment outline
-
-1. Compile the sources: `npm run build`
-2. Zip the `dist` directory with the `node_modules` folder and upload it as a Lambda function.
-3. Set the handler to `handler.handler` and the runtime to Node.js 18.x (or newer).
-4. Configure the environment variables listed above.
-5. Create an EventBridge rule (or another trigger) that invokes the Lambda at the desired cadence.
 
 ## Error handling
 
