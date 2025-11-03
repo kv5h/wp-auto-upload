@@ -11,7 +11,7 @@ COPY src ./src
 RUN npm run build
 RUN npm prune --omit=dev
 
-FROM public.ecr.aws/lambda/nodejs:18
+FROM public.ecr.aws/lambda/nodejs:20
 
 WORKDIR /var/task
 
