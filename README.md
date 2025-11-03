@@ -1,20 +1,23 @@
 # wp-auto-upload
 
-AWS Lambda function that listens to Telegram group webhooks, rewrites the message with OpenAI, and publishes the generated article to WordPress.
+AWS Lambda function that polls Telegram groups on a schedule, rewrites prompts with DeepSeek, and publishes the generated article to WordPress (then deletes the original messages).
 
 ## Architecture
 
-### User initiated
+### User's post based
 
-1. Post a prompt to a Telegram group (Manually)
-1. Webhook is posted to Cloud server
+1. User post prompts to a Telegram group (Manually)
+1. Run any cloud server by schedule
 1. @ NodeJS application
-   1. Generate a blog content with AI LLM
-   1. Create a blog content via WordPress API
+   1. Get new posts on Telegram group
+      1. For each post
+         1. Generate a blog content with AI LLM
+         1. Create a blog content via WordPress API
+         1. Delete original post
 
 ### Cron based
 
-1. Run Cloud server via any schedule
+1. Run a cloud server by schedule
 1. @ NodeJS application
    1. Search trending keywords from Google
    1. Generate a blog content with AI LLM
@@ -22,17 +25,21 @@ AWS Lambda function that listens to Telegram group webhooks, rewrites the messag
 
 ## How it works
 
-- Telegram posts the group webhook directly to the Lambda Function URL.
-- Lambda (`dist/handler.handler`) forwards the Telegram message to OpenAI's Chat Completions API.
-- OpenAI's answer is published to WordPress through the REST API.
+- An EventBridge schedule (or another trigger) invokes the Lambda at the interval you choose.
+- The Lambda pulls pending updates from Telegram via the `getUpdates` Bot API method.
+- Each prompt is sent to DeepSeek to generate a blog post, which is then published through the WordPress REST API.
+- After a successful publish, the originating Telegram message is deleted so it is not processed again.
 
 ## Environment variables
 
 | Name                             | Required | Description                                                                |
 | -------------------------------- | -------- | -------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                 | ✅       | Secret key for the OpenAI API.                                             |
-| `OPENAI_MODEL`                   | ⛔️      | Chat model name. Defaults to `gpt-4o-mini`.                                |
-| `OPENAI_SYSTEM_PROMPT`           | ⛔️      | System prompt for the assistant. Default asks for a publishable blog post. |
+| `DEEPSEEK_API_KEY`               | ✅       | Secret key for the DeepSeek API.                                           |
+| `DEEPSEEK_MODEL`                 | ⛔️      | Chat model name. Defaults to `deepseek-chat`.                              |
+| `DEEPSEEK_SYSTEM_PROMPT`         | ⛔️      | System prompt for the assistant. Default asks for a publishable blog post. |
+| `TELEGRAM_BOT_TOKEN`             | ✅       | Bot token obtained from BotFather.                                         |
+| `TELEGRAM_CHAT_ID`               | ✅       | Numeric chat ID of the target group (e.g. `-1001234567890`).               |
+| `TELEGRAM_FETCH_LIMIT`           | ⛔️      | Max updates to fetch per run (1-100). Defaults to `50`.                    |
 | `WORDPRESS_BASE_URL`             | ✅       | WordPress site root, e.g. `https://example.com`.                           |
 | `WORDPRESS_USERNAME`             | ✅       | WordPress username that owns an Application Password.                      |
 | `WORDPRESS_APPLICATION_PASSWORD` | ✅       | WordPress Application Password used for Basic Auth.                        |
@@ -44,13 +51,11 @@ All secrets must be supplied through Lambda environment variables. Nothing is st
 
 1. Install dependencies once: `npm install`
 2. Compile TypeScript: `npm run build`
-3. (Optional) Simulate a webhook by running the compiled handler with a mock event:
+3. (Optional) Run the handler locally (will contact Telegram/WordPress directly, so set the environment variables first):
 
    ```bash
-   node -e "const { handler } = require('./dist/handler'); (async () => console.log(await handler({ body: JSON.stringify({ message: { text: 'Hello from Telegram!', chat: { id: 1, type: 'group' }, message_id: 1 } }) })))();"
+   node -e "const { handler } = require('./dist/handler'); (async () => { await handler(); })();"
    ```
-
-   Provide the required environment variables before running the command.
 
 ## Local emulation with Docker
 
@@ -61,34 +66,52 @@ This project includes a `Dockerfile` based on the official AWS Lambda Node.js im
 
    ```bash
    docker run --rm -p 9000:8080 \
-     -e OPENAI_API_KEY=sk-your-key \
-     -e WORDPRESS_BASE_URL=https://example.com \
-     -e WORDPRESS_USERNAME=bot \
-     -e WORDPRESS_APPLICATION_PASSWORD=app-password \
+     --env-file ./.env \
      wp-auto-upload
    ```
 
-3. Send a sample Telegram payload to the local Lambda endpoint:
+3. Trigger the local Lambda endpoint:
 
    ```bash
    curl -X POST \
      http://localhost:9000/2015-03-31/functions/function/invocations \
-     -d @events/function-url-event.json
+     -d '{}'
    ```
 
-   The response mirrors the production Lambda output. `events/sample-telegram.json` contains the raw Telegram [Update](https://core.telegram.org/bots/api#update) object, and `events/function-url-event.json` wraps that payload in the structure produced by a Lambda Function URL. Adjust either file to
-   test different messages or scenarios.
+   While the container runs it will pull live updates from Telegram, publish to WordPress, and delete processed messages. `events/sample-telegram.json` illustrates a typical Telegram [Update](https://core.telegram.org/bots/api#update); adjust it if you need to simulate incoming messages when
+   stubbing the Bot API.
+
+## Telegram group setup
+
+1. **Create a Telegram bot**
+   - Talk to [@BotFather](https://t.me/BotFather) and create a new bot.
+   - Copy the API token it returns and set it as `TELEGRAM_BOT_TOKEN`.
+2. **Add the bot to the target group**
+   - Invite the bot account to the Telegram group you want to automate.
+   - Promote the bot to admin (required to delete processed messages) and ensure it has rights to see and remove messages.
+3. **Obtain the group chat ID**
+   - Temporarily enable [Bot API mode with privacy disabled](https://core.telegram.org/bots/features#privacy-mode) or use a helper bot (e.g. [@RawDataBot](https://t.me/RawDataBot)) to read the `chat.id` value when a message is posted in the group.
+   - The ID is usually negative for supergroups (e.g. `-1001234567890`). Set this value as `TELEGRAM_CHAT_ID`.
+4. **Reset webhook (optional but recommended)**
+
+   - Because this project uses polling via `getUpdates`, ensure no webhook is configured by calling:
+
+     ```bash
+     curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url="
+     ```
+
+5. **Schedule Lambda**
+   - After populating the environment variables, deploy the Lambda and wire it to an EventBridge rule. Whenever the function runs it will poll the group, generate WordPress posts, and delete the processed Telegram messages.
 
 ## Deployment outline
 
 1. Compile the sources: `npm run build`
 2. Zip the `dist` directory with the `node_modules` folder and upload it as a Lambda function.
 3. Set the handler to `handler.handler` and the runtime to Node.js 18.x (or newer).
-4. Enable a Lambda Function URL (auth type: `NONE`) and note the generated HTTPS endpoint.
-5. Configure the environment variables listed above.
-6. Point the Telegram bot webhook to the Lambda Function URL.
+4. Configure the environment variables listed above.
+5. Create an EventBridge rule (or another trigger) that invokes the Lambda at the desired cadence.
 
 ## Error handling
 
-- Webhooks without text or captioned content are ignored with a `200` response so Telegram stops retrying.
-- OpenAI and WordPress failures are logged and return `500` to make the issue visible in CloudWatch.
+- Updates without text content or from other chats are skipped and acknowledged so they are not retried.
+- Failures during DeepSeek, WordPress, or Telegram deletion leave the update unacknowledged, ensuring it will be retried on the next scheduled run (check CloudWatch logs for details).

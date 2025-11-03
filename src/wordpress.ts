@@ -1,16 +1,26 @@
 import { config } from './config';
 
+/**
+ * Input parameters required to create a WordPress post via the REST API.
+ */
 interface CreatePostInput {
     title: string;
     content: string;
     status?: string;
 }
 
+/**
+ * Subset of the WordPress post representation returned by the REST API.
+ */
 interface WordPressPost {
     id: number;
     link?: string;
 }
 
+/**
+ * Builds the HTTP Basic Authorization header for the configured WordPress credentials.
+ * @returns Basic auth header string.
+ */
 const getAuthHeader = (): string => {
     const credentials = Buffer.from(`${config.wordpressUsername}:${config.wordpressApplicationPassword}`).toString(
         'base64',
@@ -18,6 +28,11 @@ const getAuthHeader = (): string => {
     return `Basic ${credentials}`;
 };
 
+/**
+ * Creates a WordPress post using the REST API.
+ * @param input Post payload including title, content, and optional status override.
+ * @returns WordPress post metadata provided by the REST API.
+ */
 export const createWordPressPost = async (input: CreatePostInput): Promise<WordPressPost> => {
     const payload = {
         title: input.title,
